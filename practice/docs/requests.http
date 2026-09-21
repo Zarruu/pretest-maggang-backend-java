@@ -1,0 +1,61 @@
+@catalog = http://localhost:8081
+@cart = http://localhost:8082
+@transaction = http://localhost:8083
+@customer = 11111111-1111-1111-1111-111111111111
+@checkoutKey = demo-checkout-001
+
+### Jalankan berurutan. Ganti SKU dan checkoutKey jika membuat pembelian demo baru.
+# @name createStore
+POST {{catalog}}/api/stores
+Content-Type: application/json
+
+{"name":"iStore Bandung","city":"Bandung"}
+
+###
+# @name createProduct
+POST {{catalog}}/api/products
+Content-Type: application/json
+
+{"storeId":"{{createStore.response.body.id}}","name":"MacBook Pro","description":"Laptop M2 Pro","category":"Laptop","imageUrl":""}
+
+###
+# @name createVariant
+POST {{catalog}}/api/products/{{createProduct.response.body.product.id}}/variants
+Content-Type: application/json
+
+{"sku":"MBP-DEMO-001","variantName":"16GB / 512GB / Silver","price":36499000,"stock":10}
+
+### Katalog
+GET {{catalog}}/api/products?storeId={{createStore.response.body.id}}&q=MacBook&sort=newest
+
+### Detail produk
+GET {{catalog}}/api/products/{{createProduct.response.body.product.id}}
+
+###
+# @name addCartItem
+POST {{cart}}/api/cart/items
+Content-Type: application/json
+X-Customer-Id: {{customer}}
+
+{"variantId":"{{createVariant.response.body.id}}","quantity":1,"note":"Mohon kemasan aman"}
+
+### Keranjang
+GET {{cart}}/api/cart
+X-Customer-Id: {{customer}}
+
+###
+# @name checkout
+POST {{transaction}}/api/checkouts
+Content-Type: application/json
+X-Customer-Id: {{customer}}
+Idempotency-Key: {{checkoutKey}}
+
+{"itemIds":["{{addCartItem.response.body.id}}"],"recipientName":"Budi","recipientPhone":"081234567890","shippingAddress":"Bandung, Jawa Barat","courier":"REGULAR"}
+
+### Daftar transaksi
+GET {{transaction}}/api/transactions?status=CREATED&page=0&size=20
+X-Customer-Id: {{customer}}
+
+### Detail transaksi
+GET {{transaction}}/api/transactions/{{checkout.response.body.id}}
+X-Customer-Id: {{customer}}

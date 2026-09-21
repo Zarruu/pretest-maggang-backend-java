@@ -1,0 +1,29 @@
+server:
+  port: ${PORT:8083}
+spring:
+  application:
+    name: transaction-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/transaction_db}
+    username: ${DB_USER:transaction_user}
+    password: ${DB_PASSWORD:transaction_local}
+    hikari:
+      maximum-pool-size: 10
+  flyway:
+    enabled: true
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+app:
+  internal-key: ${INTERNAL_KEY:local-practice-internal-key}
+  catalog-url: ${CATALOG_URL:http://localhost:8081}
+  cart-url: ${CART_URL:http://localhost:8082}
+  recovery-delay-ms: ${RECOVERY_DELAY_MS:5000}

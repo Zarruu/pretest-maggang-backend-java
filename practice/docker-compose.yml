@@ -1,0 +1,64 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_local
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d transaction_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  catalog-service:
+    build:
+      context: .
+      args:
+        SERVICE_NAME: catalog-service
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/catalog_db
+      INTERNAL_KEY: ${INTERNAL_KEY:-local-practice-internal-key}
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  cart-service:
+    build:
+      context: .
+      args:
+        SERVICE_NAME: cart-service
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/cart_db
+      CATALOG_URL: http://catalog-service:8081
+      INTERNAL_KEY: ${INTERNAL_KEY:-local-practice-internal-key}
+    ports:
+      - "127.0.0.1:8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  transaction-service:
+    build:
+      context: .
+      args:
+        SERVICE_NAME: transaction-service
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/transaction_db
+      CATALOG_URL: http://catalog-service:8081
+      CART_URL: http://cart-service:8082
+      INTERNAL_KEY: ${INTERNAL_KEY:-local-practice-internal-key}
+    ports:
+      - "127.0.0.1:8083:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
